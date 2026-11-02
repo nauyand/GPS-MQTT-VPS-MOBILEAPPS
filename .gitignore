@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Arsip (gunakan tombol "Download ZIP" di GitHub)
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db

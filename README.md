@@ -6,8 +6,28 @@ Server Python menerima data **GPS** (Codec 8 Extended) dan **TPMS via RS232** (C
 |---|---|
 | **Status** | ✅ Pipeline GPS + TPMS berhasil |
 | **Terakhir dites** | 8 Oktober 2026 |
-| **Kode aktif (v1)** | [`gps_server.py`](gps_server.py) (di VPS: `/root/gps_server.py`) ✅ sudah jalan |
-| **Kode NEXT (v2)** | [`gps_server_v2.py`](gps_server_v2.py) 🟡 *(belum di-test di VPS/FMB125, perlu deploy di VPS)*, lihat [bagian 10](#10-next-gps_server_v2py) |
+| **Kode aktif (v1)** | [`server/gps_server.py`](server/gps_server.py) (di VPS: `/root/gps_server.py`) ✅ sudah jalan |
+| **Kode NEXT (v2)** | [`server/gps_server_v2.py`](server/gps_server_v2.py) 🟡 *(belum di-test di VPS/FMB125, perlu deploy di VPS)*, lihat [bagian 10](#10-next-gps_server_v2py) |
+| **Aplikasi Android** | [`MyApplication/`](MyApplication/) (GPS Monitor), lihat [bagian 6.5](#65-aplikasi-android-gps-monitor) |
+
+---
+
+## Struktur Repository
+
+```text
+.
+├── README.md                 ← dokumentasi ini
+├── server/                   ← kode Python untuk VPS
+│   ├── gps_server.py         ← v1 (sedang jalan di VPS)
+│   ├── gps_server_v2.py      ← v2 NEXT (belum di-test di VPS)
+│   └── requirements.txt      ← dependensi Python (paho-mqtt)
+├── MyApplication/            ← aplikasi Android (buka folder ini di Android Studio)
+│   └── app/src/main/java/com/gpsaxius/monitor/MainActivity.kt
+└── docs/
+    └── app-icon-source.jpeg  ← gambar sumber ikon aplikasi
+```
+
+> Untuk mengunduh semua file sekaligus: tombol **Code → Download ZIP** di GitHub.
 
 ---
 
@@ -288,9 +308,45 @@ Terminal 2:
 mosquitto_pub -h localhost -t "test" -m "HELLO MQTT"
 ```
 
-### 6.5 Dari HP (Android)
+### 6.5 Aplikasi Android (GPS Monitor)
 
-Isi broker `202.10.47.206`, port `1883`, username dan password kosong, TLS OFF, lalu subscribe `vehicle/352016700616766/#`.
+Kode ada di folder [`MyApplication/`](MyApplication/). Buka folder ini di Android Studio, **bukan** root repo.
+
+| Item | Nilai |
+|---|---|
+| Nama aplikasi | GPS Monitor |
+| Package | `com.gpsaxius.monitor` |
+| Kode utama | `MyApplication/app/src/main/java/com/gpsaxius/monitor/MainActivity.kt` |
+| Library MQTT | Eclipse Paho `mqttv3` 1.2.5 |
+| Min / target SDK | 26 (Android 8.0) / 37 |
+| Broker | `tcp://202.10.47.206:1883` (hardcode di `MainActivity.kt`) |
+| Topic | `vehicle/352016700616766/gps` dan `vehicle/352016700616766/tpms` (hardcode) |
+
+**Fitur:**
+
+- Status koneksi MQTT dengan auto-reconnect
+- GPS: kecepatan, satelit, lat/lon, ketinggian, arah, waktu GPS, dan tombol **buka di Google Maps**
+- TPMS 8 ban: tekanan (PSI) dan temperatur (°C), dengan warna status NORMAL / PERINGATAN / BAHAYA
+- Alarm: notifikasi per ban saat kritis dan suara TTS bahasa Indonesia
+- Pengaturan batas alarm (tekanan min/maks, temperatur maks), tersimpan di HP
+
+**Batas alarm default:**
+
+| Parameter | Default |
+|---|---|
+| Tekanan minimum | 90 PSI |
+| Tekanan maksimum | 120 PSI |
+| Temperatur maksimum | 80 °C |
+
+> ⚠️ Peringatan dan bahaya: PERINGATAN muncul 5 PSI sebelum batas tekanan atau 10 °C sebelum batas temperatur. Dengan data tes (32–35 PSI), semua ban akan tampil **BAHAYA**. Sesuaikan lewat tombol pengaturan alarm di aplikasi.
+
+**Catatan aplikasi (belum diperbaiki):**
+
+- Alarm hanya jalan saat aplikasi terbuka di layar (belum ada Foreground Service)
+- Di Android 15+, tampilan bisa tertutup status bar atau tombol navigasi (belum ada penanganan edge-to-edge insets)
+- Saat layar diputar, data di layar kosong sampai pesan MQTT berikutnya masuk
+
+**Tes manual dengan aplikasi MQTT lain:** isi broker `202.10.47.206`, port `1883`, username dan password kosong, TLS OFF, lalu subscribe `vehicle/352016700616766/#`.
 
 ✅ GPS dan TPMS sudah berhasil diterima di HP.
 
@@ -409,7 +465,11 @@ Cek juga:
 
 IO ID yang pernah terlihat dari FMB125: `239, 240, 21, 200, 69, 181, 182, 66, 67, 68, 201, 241, 16`.
 
-Dependensi: `paho-mqtt` (terpasang di `/root/gps-env`).
+Dependensi: `paho-mqtt` (terpasang di `/root/gps-env`, daftar ada di [`server/requirements.txt`](server/requirements.txt)). Untuk install di VPS baru:
+
+```bash
+/root/gps-env/bin/pip install -r requirements.txt
+```
 
 ---
 
@@ -470,7 +530,7 @@ Dites dengan Mosquitto asli dan simulator FMB125 (paket Codec 8E dan Codec 12 de
 
 ### 10.4 Cara deploy ke VPS *(belum dilakukan)*
 
-**1. Upload file** (dari komputer Windows, di folder tempat file disimpan)
+**1. Upload file** (dari komputer Windows, di dalam folder `server/` repo ini)
 
 ```bash
 scp gps_server_v2.py root@202.10.47.206:/root/
